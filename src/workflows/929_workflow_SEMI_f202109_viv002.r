@@ -1,4 +1,4 @@
-# Corrida general del Workflow Baseline
+# Corrida general del Workflow Epic
 
 # limpio la memoria
 rm(list = ls(all.names = TRUE)) # remove all objects
@@ -43,8 +43,8 @@ options(error = function() {
 
 dir.create( envg$EXPENV$exp_dir, showWarnings = FALSE)
 dir.create( envg$EXPENV$wf_dir, showWarnings = FALSE)
-#------------------------------------------------------------------------------
 
+#------------------------------------------------------------------------------
 # ambiente
 
 envg$EXPENV$miAmbiente <- read_yaml( 
@@ -141,25 +141,25 @@ FEhist_base <- function( pinputexps)
   param_local$meta$script <- "/src/wf-etapas/z1501_FE_historia.r"
 
   param_local$lag1 <- TRUE
-  param_local$lag2 <- FALSE # no me engraso con los lags de orden 2
+  param_local$lag2 <- TRUE # no me engraso con los lags de orden 2
   param_local$lag3 <- FALSE # no me engraso con los lags de orden 3
 
   # no me engraso las manos con las tendencias
   param_local$Tendencias1$run <- TRUE  # FALSE, no corre nada de lo que sigue
   param_local$Tendencias1$ventana <- 6
   param_local$Tendencias1$tendencia <- TRUE
-  param_local$Tendencias1$minimo <- FALSE
-  param_local$Tendencias1$maximo <- FALSE
+  param_local$Tendencias1$minimo <- TRUE
+  param_local$Tendencias1$maximo <- TRUE
   param_local$Tendencias1$promedio <- FALSE
   param_local$Tendencias1$ratioavg <- FALSE
   param_local$Tendencias1$ratiomax <- FALSE
 
   # no me engraso las manos con las tendencias de segundo orden
-  param_local$Tendencias2$run <- FALSE
+  param_local$Tendencias2$run <- TRUE
   param_local$Tendencias2$ventana <- 12
-  param_local$Tendencias2$tendencia <- FALSE
-  param_local$Tendencias2$minimo <- FALSE
-  param_local$Tendencias2$maximo <- FALSE
+  param_local$Tendencias2$tendencia <- TRUE
+  param_local$Tendencias2$minimo <- TRUE
+  param_local$Tendencias2$maximo <- TRUE
   param_local$Tendencias2$promedio <- FALSE
   param_local$Tendencias2$ratioavg <- FALSE
   param_local$Tendencias2$ratiomax <- FALSE
@@ -209,7 +209,8 @@ FErf_attributes_base <- function( pinputexps, ratio, desvio)
     max_depth = -1L,
     min_gain_to_split = 0.0,
     min_sum_hessian_in_leaf = 0.001,
-    
+    lambda_l1 = 0.0,
+    lambda_l2 = 0.0,
 
     pos_bagging_fraction = 1.0,
     neg_bagging_fraction = 1.0,
@@ -256,8 +257,8 @@ CN_canaritos_asesinos_base <- function( pinputexps, ratio, desvio)
   return( exp_correr_script( param_local ) ) # linea fija
 }
 #------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Training Strategy  Baseline
-#   y solo incluyo en el dataset al 20% de los CONTINUA
 #  azaroso, utiliza semilla
 
 TS_strategy_base9 <- function( pinputexps )
@@ -266,22 +267,37 @@ TS_strategy_base9 <- function( pinputexps )
 
   param_local$meta$script <- "/src/wf-etapas/z2101_TS_training_strategy.r"
 
-
   param_local$future <- c(202109)
 
   param_local$final_train$undersampling <- 1.0
   param_local$final_train$clase_minoritaria <- c( "BAJA+1", "BAJA+2")
-  param_local$final_train$training <- c(202107, 202005, 202105, 202104, 202103, 202102,
-    202101, 202012, 202011)
+  param_local$final_train$training <- c(
+    202107, 202106, 202105, 202104, 202103, 202102, 202101, 
+    202012, 202011, 202010, 202009, 202008, 202007, 
+    # 202006  Excluyo por variables rotas
+    202005, 202004, 202003, 202002, 202001,
+    201912, 201911,
+    # 201910 Excluyo por variables rotas
+    201909, 201908, 201907, 201906
+  )
 
 
-  param_local$train$training <- c(202105, 202104, 202103, 202102, 202101,
-    202012, 202011, 202008, 202009)
-  param_local$train$validation <- c(202106, 202010, 202106)
+  param_local$train$training <- c(
+    202105, 202104, 202103, 202102, 202101, 
+    202012, 202011, 202010, 202009, 202008, 202006,
+    # 202006  Excluyo por variables rotas
+    202005, 202004, 202002, 202001,
+    201912, 201911,
+    # 201910 Excluyo por variables rotas
+    201909, 201908, 201907, 201906
+    )
+
+  param_local$train$validation <- c(202106)
   param_local$train$testing <- c(202107)
 
+
   # Atencion  0.2  de  undersampling de la clase mayoritaria,  los CONTINUA
-  # 1.0 significa NO undersampling
+  # 1.0 significa NO undersamplin
   param_local$train$undersampling <- 0.2
   param_local$train$clase_minoritaria <- c( "BAJA+1", "BAJA+2")
 
@@ -293,11 +309,12 @@ TS_strategy_base9 <- function( pinputexps )
 #  azaroso, utiliza semilla
 #  puede llegar a recibir  bypass, que por default esta en false
 
-HT_tuning_base <- function( pinputexps, bypass=FALSE)
+HT_tuning_semillerio <- function( pinputexps, semillerio, bo_iteraciones, bypass=FALSE)
 {
   if( -1 == (param_local <- exp_init(pbypass=bypass))$resultado ) return( 0 ) # linea fija bypass
 
-  param_local$meta$script <- "/src/wf-etapas/z2201_HT_lightgbm_gan.r"
+  param_local$meta$script <- "/src/wf-etapas/z2213_HT_lightgbm_SEMI.r"
+
 
   # En caso que se haga cross validation, se usa esta cantidad de folds
   param_local$lgb_crossvalidation_folds <- 5
@@ -307,6 +324,9 @@ HT_tuning_base <- function( pinputexps, bypass=FALSE)
   param_local$train$gan1 <- 117000
   param_local$train$gan0 <-  -3000
   param_local$train$meseta <- 2001
+  param_local$train$repeticiones_exp <- 1
+  param_local$train$semillerio <- semillerio  # 1 es no usar semillerio en la Bayesian Optim
+  param_local$train$timeout <- 20000
 
   # Hiperparametros  del LightGBM
   #  los que tienen un solo valor son los que van fijos
@@ -324,11 +344,11 @@ HT_tuning_base <- function( pinputexps, bypass=FALSE)
     max_depth = -1L, # -1 significa no limitar,  por ahora lo dejo fijo
     min_gain_to_split = 0.0, # min_gain_to_split >= 0.0
     min_sum_hessian_in_leaf = 0.001, #  min_sum_hessian_in_leaf >= 0.0
-    
+    #lambda_l1 = 0.0,  lambda_l1 >= 0.0
+    #lambda_l2 = 0.0,  lambda_l2 >= 0.0
     max_bin = 31L, # lo debo dejar fijo, no participa de la BO
-    num_iterations = 9999, # un numero muy grande, lo limita early_stopping_rounds
-    #lambda_l1 = c(1.0, 1000.0),
-    #lambda_l2 = c(1.0, 1000.0),
+    early_stopping = 0,  # No se hace early stopping
+
     bagging_fraction = 1.0, # 0.0 < bagging_fraction <= 1.0
     pos_bagging_fraction = 1.0, # 0.0 < pos_bagging_fraction <= 1.0
     neg_bagging_fraction = 1.0, # 0.0 < neg_bagging_fraction <= 1.0
@@ -341,19 +361,19 @@ HT_tuning_base <- function( pinputexps, bypass=FALSE)
 
     extra_trees = FALSE,
     # Parte variable
-    learning_rate = c( 0.02, 0.3 ),
-    feature_fraction = c( 0.5, 0.99 ),
-    num_leaves = c( 8L, 8196L,  "integer" ),
-    min_data_in_leaf = c( 5L, 50000L, "integer" ),
+    learning_rate = c( 0.2, 1.2 ),
+    feature_fraction = c( 0.01, 0.9 ),
     lambda_l1 = c(1.0, 1500.0),
     lambda_l2 = c(1.0, 1500.0),
-    max_delta_step = c(1.0, 10.0)
-    
+    max_delta_step = c(1.0, 10.0),
+    num_iterations_log = c(2, 8),  # directo a num_iterations 2^ 
+    leaf_size_log = c( -11, -5),   # deriva en min_data_in_leaf
+    coverage_log = c( -4, 0 )      # deriva en num_leaves
   )
 
 
-  # una Bayesian humilde, pero no descabellada
-  param_local$bo_iteraciones <- 60 # iteraciones de la Optimizacion Bayesiana
+  # una Bayesian humilde
+  param_local$bo_iteraciones <- bo_iteraciones # iteraciones de la Optimizacion Bayesiana
 
   return( exp_correr_script( param_local ) ) # linea fija
 }
@@ -361,11 +381,11 @@ HT_tuning_base <- function( pinputexps, bypass=FALSE)
 # proceso FM_final_models_base  Baseline
 #  azaroso, utiliza semilla
 
-FM_final_models_lightgbm <- function( pinputexps, ranks, qsemillas )
+FM_final_models_lightgbm_semillerio <- function( pinputexps, ranks, semillerio, repeticiones_exp)
 {
   if( -1 == (param_local <- exp_init())$resultado ) return( 0 )# linea fija
 
-  param_local$meta$script <- "/src/wf-etapas/z2301_FM_final_models_lightgbm.r"
+  param_local$meta$script <- "/src/wf-etapas/z2302_FM_final_models_lightgbm_SEMI.r"
 
   # Que modelos quiero, segun su posicion en el ranking de la Bayesian Optimizacion, ordenado por metrica descendente
   param_local$modelos_rank <- ranks
@@ -378,7 +398,8 @@ FM_final_models_lightgbm <- function( pinputexps, ranks, qsemillas )
   param_local$train$positivos <- c( "BAJA+2")
 
   # default 20 semillas
-  param_local$qsemillas <- qsemillas
+  param_local$semillerio <- semillerio
+  param_local$repeticiones_exp <- repeticiones_exp
 
   return( exp_correr_script( param_local ) ) # linea fija
 }
@@ -386,11 +407,11 @@ FM_final_models_lightgbm <- function( pinputexps, ranks, qsemillas )
 # proceso ZZ_final  Baseline
 # deterministico, SIN random
 
-SC_scoring <- function( pinputexps )
+SC_scoring_semillerio <- function( pinputexps )
 {
   if( -1 == (param_local <- exp_init())$resultado ) return( 0 )# linea fija
 
-  param_local$meta$script <- "/src/wf-etapas/z2401_SC_scoring_lightgbm.r"
+  param_local$meta$script <- "/src/wf-etapas/z2402_SC_scoring_lightgbm_SEMI.r"
 
   param_local$semilla <- NULL  # no usa semilla, es deterministico
 
@@ -400,23 +421,25 @@ SC_scoring <- function( pinputexps )
 # proceso KA_evaluate_kaggle
 # deterministico, SIN random
 
-KA_evaluate_kaggle <- function( pinputexps )
+KA_evaluate_kaggle_semillerio <- function( pinputexps )
 {
   if( -1 == (param_local <- exp_init())$resultado ) return( 0 )# linea fija
 
-  param_local$meta$script <- "/src/wf-etapas/z2601_KA_evaluate_kaggle.r"
+  param_local$meta$script <- "/src/wf-etapas/z2602_KA_evaluate_kaggle_SEMI.r"
 
   param_local$semilla <- NULL  # no usa semilla, es deterministico
 
-  param_local$isems_submit <- 1:20 # misterioso parametro, no preguntar
+  param_local$irepes_submit <- 1:20 # misterioso parametro, no preguntar
 
-  param_local$envios_desde <-   10000L
-  param_local$envios_hasta <-  11000L
-  param_local$envios_salto <-    500L
+  param_local$envios_desde <-  9500L
+  param_local$envios_hasta <- 13000L
+  param_local$envios_salto <-   500L
   param_local$competition <- "labo-i-vivencial-2024-ba"
 
   return( exp_correr_script( param_local ) ) # linea fija
 }
+#------------------------------------------------------------------------------
+
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
 # A partir de ahora comienza la seccion de Workflows Completos
@@ -425,7 +448,7 @@ KA_evaluate_kaggle <- function( pinputexps )
 # Que predice 202107 donde conozco la clase
 # y ya genera graficos
 
-wf_septiembre <- function( pnombrewf )
+wf_SEMI_sep <- function( pnombrewf )
 {
   param_local <- exp_wf_init( pnombrewf ) # linea fija
 
@@ -438,11 +461,21 @@ wf_septiembre <- function( pnombrewf )
   CN_canaritos_asesinos_base(ratio=0.95, desvio=2.35)
 
   ts9 <- TS_strategy_base9()
-  ht <- HT_tuning_base()
 
-  fm <- FM_final_models_lightgbm( c(ht, ts9), ranks=c(1), qsemillas=10 )
-  SC_scoring( c(fm, ts9) )
-  KA_evaluate_kaggle()
+  # la Bayesian Optimization con el semillerio dentro
+  ht <- HT_tuning_semillerio(
+    semillerio = 20, # semillerio dentro de la Bayesian Optim
+    bo_iteraciones = 40  # iteraciones inteligentes
+  )
+
+  fm <- FM_final_models_lightgbm_semillerio( 
+    c(ht, ts9), # los inputs
+    ranks = c(1), # 1 = el mejor de la bayesian optimization
+    semillerio = 40,   # cantidad de semillas finales
+    repeticiones_exp = 1 )
+  
+  SC_scoring_semillerio( c(fm, ts9) )
+  KA_evaluate_kaggle_semillerio()
 
   return( exp_wf_end() ) # linea fija
 }
@@ -451,5 +484,5 @@ wf_septiembre <- function( pnombrewf )
 # Aqui comienza el programa
 
 # llamo al workflow con future = 202109
-wf_septiembre()
+wf_SEMI_sep()
 
